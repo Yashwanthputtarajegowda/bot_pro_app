@@ -1,17 +1,44 @@
 // ==========================================
 // Bot Pro Upload JS
-// Video + Photo + Settings
+// PART 1 / 3
+// Firebase Auth + Video/Photo Upload
 // ==========================================
+
+// ==========================================
+// Firebase API Helper
+// ==========================================
+
+import { apiFetch, waitForAuth } from "./api.js";
 
 
 // ==========================================
 // Backend API
 // ==========================================
 
-import { apiFetch } from "../firebase/api.js";
-
 const API_URL =
     "https://bot-pro-backend-production.up.railway.app";
+
+
+// ==========================================
+// Check Login
+// ==========================================
+
+const currentUser =
+    await waitForAuth();
+
+if (!currentUser) {
+
+    alert(
+        "Please login before uploading."
+    );
+
+    window.location.href =
+        "login.html";
+
+    throw new Error(
+        "User is not logged in."
+    );
+}
 
 
 // ==========================================
@@ -21,7 +48,8 @@ const API_URL =
 const fileInput =
     document.createElement("input");
 
-fileInput.type = "file";
+fileInput.type =
+    "file";
 
 fileInput.accept =
     "video/*,image/*";
@@ -37,7 +65,8 @@ document.body.appendChild(
 const thumbnailInput =
     document.createElement("input");
 
-thumbnailInput.type = "file";
+thumbnailInput.type =
+    "file";
 
 thumbnailInput.accept =
     "image/*";
@@ -54,15 +83,18 @@ document.body.appendChild(
 // Selected Files
 // ==========================================
 
-let selectedFile = null;
+let selectedFile =
+    null;
 
-let selectedThumbnail = null;
+let selectedThumbnail =
+    null;
 
-let selectedUploadType = "video";
+let selectedUploadType =
+    "video";
 
 
 // ==========================================
-// Elements
+// Main Elements
 // ==========================================
 
 const uploadTypes =
@@ -241,123 +273,117 @@ const customThumbnailSetting =
 // Upload Type Selection
 // ==========================================
 
-uploadTypes.forEach((card) => {
+uploadTypes.forEach(
+    (card) => {
 
-    card.addEventListener(
-        "click",
-        () => {
+        card.addEventListener(
+            "click",
+            () => {
 
-            uploadTypes.forEach(
-                (item) => {
+                uploadTypes.forEach(
+                    (item) => {
 
-                    item.classList.remove(
-                        "active"
-                    );
+                        item.classList.remove(
+                            "active"
+                        );
+
+                    }
+                );
+
+
+                card.classList.add(
+                    "active"
+                );
+
+
+                const type =
+                    card
+                        .querySelector(
+                            "span"
+                        )
+                        ?.textContent
+                        ?.trim();
+
+
+                // ==============================
+                // VIDEO
+                // ==============================
+
+                if (
+                    type === "Video"
+                ) {
+
+                    selectedUploadType =
+                        "video";
+
+                    uploadTitle.textContent =
+                        "Select Video";
+
+                    uploadDescription.textContent =
+                        "MP4 • MOV • AVI • Max 2GB";
+
+                    fileInput.accept =
+                        "video/*";
+
+                    resetMainFile();
 
                 }
-            );
 
 
-            card.classList.add(
-                "active"
-            );
+                // ==============================
+                // REEL
+                // ==============================
+
+                else if (
+                    type === "Reel"
+                ) {
+
+                    selectedUploadType =
+                        "reel";
+
+                    uploadTitle.textContent =
+                        "Select Reel";
+
+                    uploadDescription.textContent =
+                        "MP4 • MOV • Max 2GB";
+
+                    fileInput.accept =
+                        "video/*";
+
+                    resetMainFile();
+
+                }
 
 
-            const type =
-                card
-                    .querySelector("span")
-                    ?.textContent
-                    ?.trim();
+                // ==============================
+                // LINK
+                // ==============================
 
+                else if (
+                    type === "Link"
+                ) {
 
-            // ==================================
-            // VIDEO
-            // ==================================
+                    selectedUploadType =
+                        "link";
 
-            if (type === "Video") {
+                    uploadTitle.textContent =
+                        "Select File";
 
-                selectedUploadType =
-                    "video";
+                    uploadDescription.textContent =
+                        "Choose a video or image";
 
+                    fileInput.accept =
+                        "video/*,image/*";
 
-                uploadTitle.textContent =
-                    "Select Video";
+                    resetMainFile();
 
-
-                uploadDescription.textContent =
-                    "MP4 • MOV • AVI • Max 2GB";
-
-
-                fileInput.accept =
-                    "video/*";
-
-
-                resetMainFile();
-
-            }
-
-
-            // ==================================
-            // REEL
-            // ==================================
-
-            else if (
-                type === "Reel"
-            ) {
-
-                selectedUploadType =
-                    "reel";
-
-
-                uploadTitle.textContent =
-                    "Select Reel";
-
-
-                uploadDescription.textContent =
-                    "MP4 • MOV • Max 2GB";
-
-
-                fileInput.accept =
-                    "video/*";
-
-
-                resetMainFile();
+                }
 
             }
+        );
 
-
-            // ==================================
-            // LINK
-            // ==================================
-
-            else if (
-                type === "Link"
-            ) {
-
-                selectedUploadType =
-                    "link";
-
-
-                uploadTitle.textContent =
-                    "Select File";
-
-
-                uploadDescription.textContent =
-                    "Choose a video or image";
-
-
-                fileInput.accept =
-                    "video/*,image/*";
-
-
-                resetMainFile();
-
-            }
-
-        }
-    );
-
-});
+    }
+);
 
 
 // ==========================================
@@ -376,8 +402,6 @@ if (chooseFileBtn) {
     );
 
 }
-
-
 // ==========================================
 // Main File Selected
 // ==========================================
@@ -404,19 +428,29 @@ fileInput.addEventListener(
 
 
         console.log(
-            "Selected file:",
+            "📁 Selected file:",
             file.name
         );
 
 
         console.log(
-            "File type:",
+            "📦 File type:",
             file.type
         );
 
 
+        console.log(
+            "📏 File size:",
+            (
+                file.size /
+                (1024 * 1024)
+            ).toFixed(2),
+            "MB"
+        );
+
+
         // ==================================
-        // VIDEO
+        // VIDEO PREVIEW
         // ==================================
 
         if (
@@ -425,19 +459,47 @@ fileInput.addEventListener(
             )
         ) {
 
-            selectedUploadType =
-                "video";
+            if (videoPreview) {
+
+                videoPreview.src =
+                    URL.createObjectURL(
+                        file
+                    );
+
+                videoPreview.style.display =
+                    "block";
+
+            }
 
 
-            showVideoPreview(
-                file
-            );
+            if (videoPreviewArea) {
+
+                videoPreviewArea.style.display =
+                    "block";
+
+            }
+
+
+            if (videoChooseArea) {
+
+                videoChooseArea.style.display =
+                    "none";
+
+            }
+
+
+            if (videoFileName) {
+
+                videoFileName.textContent =
+                    file.name;
+
+            }
 
         }
 
 
         // ==================================
-        // IMAGE / PHOTO
+        // IMAGE PREVIEW
         // ==================================
 
         else if (
@@ -446,208 +508,30 @@ fileInput.addEventListener(
             )
         ) {
 
-            selectedUploadType =
-                "photo";
+            if (thumbnailImage) {
+
+                thumbnailImage.src =
+                    URL.createObjectURL(
+                        file
+                    );
+
+                thumbnailImage.style.display =
+                    "block";
+
+            }
 
 
-            showPhotoPreview(
-                file
-            );
+            if (thumbnailText) {
 
-        }
+                thumbnailText.style.display =
+                    "none";
 
-
-        else {
-
-            alert(
-                "Please select a video or image."
-            );
-
-
-            resetMainFile();
+            }
 
         }
 
     }
 );
-
-
-// ==========================================
-// Show Video Preview
-// ==========================================
-
-function showVideoPreview(
-    file
-) {
-
-    const videoURL =
-        URL.createObjectURL(
-            file
-        );
-
-
-    videoPreview.src =
-        videoURL;
-
-
-    videoPreviewArea.style.display =
-        "flex";
-
-
-    videoChooseArea.style.display =
-        "none";
-
-
-    videoCancelBtn.style.display =
-        "flex";
-
-
-    videoFileName.textContent =
-        file.name;
-
-
-    videoPreview.style.display =
-        "block";
-
-
-    const imagePreview =
-        document.querySelector(
-            "#mainImagePreview"
-        );
-
-
-    if (imagePreview) {
-
-        imagePreview.remove();
-
-    }
-
-
-    videoPreview.load();
-
-
-    console.log(
-        "🎥 Video preview ready"
-    );
-
-}
-
-
-// ==========================================
-// Show Photo Preview
-// ==========================================
-
-function showPhotoPreview(
-    file
-) {
-
-    const imageURL =
-        URL.createObjectURL(
-            file
-        );
-
-
-    videoChooseArea.style.display =
-        "none";
-
-
-    videoPreviewArea.style.display =
-        "flex";
-
-
-    videoCancelBtn.style.display =
-        "flex";
-
-
-    videoFileName.textContent =
-        file.name;
-
-
-    videoPreview.style.display =
-        "none";
-
-
-    let imagePreview =
-        document.querySelector(
-            "#mainImagePreview"
-        );
-
-
-    if (!imagePreview) {
-
-        imagePreview =
-            document.createElement(
-                "img"
-            );
-
-
-        imagePreview.id =
-            "mainImagePreview";
-
-
-        imagePreview.style.width =
-            "100%";
-
-
-        imagePreview.style.maxHeight =
-            "420px";
-
-
-        imagePreview.style.objectFit =
-            "contain";
-
-
-        imagePreview.style.borderRadius =
-            "14px";
-
-
-        imagePreview.style.background =
-            "#000000";
-
-
-        videoPreviewArea.insertBefore(
-            imagePreview,
-            videoFileName
-        );
-
-    }
-
-
-    imagePreview.src =
-        imageURL;
-
-
-    imagePreview.style.display =
-        "block";
-
-
-    console.log(
-        "🖼️ Photo preview ready"
-    );
-
-}
-
-
-// ==========================================
-// Cancel Main File
-// ==========================================
-
-if (videoCancelBtn) {
-
-    videoCancelBtn.addEventListener(
-        "click",
-        (event) => {
-
-            event.preventDefault();
-
-            event.stopPropagation();
-
-            resetMainFile();
-
-        }
-    );
-
-}
 
 
 // ==========================================
@@ -675,42 +559,54 @@ function resetMainFile() {
         videoPreview.load();
 
         videoPreview.style.display =
-            "block";
+            "none";
 
     }
 
 
-    videoPreviewArea.style.display =
-        "none";
+    if (videoPreviewArea) {
 
-
-    videoChooseArea.style.display =
-        "flex";
-
-
-    videoCancelBtn.style.display =
-        "none";
-
-
-    videoFileName.textContent =
-        "";
-
-
-    const imagePreview =
-        document.querySelector(
-            "#mainImagePreview"
-        );
-
-
-    if (imagePreview) {
-
-        imagePreview.remove();
+        videoPreviewArea.style.display =
+            "none";
 
     }
 
 
-    console.log(
-        "❌ Main file cancelled"
+    if (videoChooseArea) {
+
+        videoChooseArea.style.display =
+            "";
+
+    }
+
+
+    if (videoFileName) {
+
+        videoFileName.textContent =
+            "";
+
+    }
+
+}
+
+
+// ==========================================
+// Cancel Video
+// ==========================================
+
+if (videoCancelBtn) {
+
+    videoCancelBtn.addEventListener(
+        "click",
+        (event) => {
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+            resetMainFile();
+
+        }
     );
 
 }
@@ -781,26 +677,80 @@ function showThumbnailPreview(
         );
 
 
-    thumbnailImage.src =
-        imageURL;
+    if (thumbnailImage) {
+
+        thumbnailImage.src =
+            imageURL;
+
+        thumbnailImage.style.display =
+            "block";
+
+    }
 
 
-    thumbnailImage.style.display =
-        "block";
+    if (thumbnailText) {
+
+        thumbnailText.style.display =
+            "none";
+
+    }
 
 
-    thumbnailText.style.display =
-        "none";
+    if (thumbnailCancelBtn) {
 
+        thumbnailCancelBtn.style.display =
+            "flex";
 
-    thumbnailCancelBtn.style.display =
-        "flex";
+    }
 
 
     console.log(
         "🖼️ Thumbnail selected:",
         file.name
     );
+
+}
+
+
+// ==========================================
+// Reset Thumbnail
+// ==========================================
+
+function resetThumbnail() {
+
+    selectedThumbnail =
+        null;
+
+
+    thumbnailInput.value =
+        "";
+
+
+    if (thumbnailImage) {
+
+        thumbnailImage.src =
+            "";
+
+        thumbnailImage.style.display =
+            "none";
+
+    }
+
+
+    if (thumbnailText) {
+
+        thumbnailText.style.display =
+            "block";
+
+    }
+
+
+    if (thumbnailCancelBtn) {
+
+        thumbnailCancelBtn.style.display =
+            "none";
+
+    }
 
 }
 
@@ -828,450 +778,45 @@ if (thumbnailCancelBtn) {
 
 
 // ==========================================
-// Reset Thumbnail
-// ==========================================
-
-function resetThumbnail() {
-
-    selectedThumbnail =
-        null;
-
-
-    thumbnailInput.value =
-        "";
-
-
-    thumbnailImage.src =
-        "";
-
-
-    thumbnailImage.style.display =
-        "none";
-
-
-    thumbnailText.style.display =
-        "block";
-
-
-    thumbnailCancelBtn.style.display =
-        "none";
-
-
-    console.log(
-        "❌ Thumbnail removed"
-    );
-
-}
-
-
-// ==========================================
-// Upload Progress
+// Progress
 // ==========================================
 
 function setProgress(
     value
 ) {
 
-    progressFill.style.width =
-        value + "%";
+    const safeValue =
+        Math.max(
+            0,
+            Math.min(
+                100,
+                Number(value) || 0
+            )
+        );
 
 
-    progressText.textContent =
-        value + "%";
+    if (progressFill) {
+
+        progressFill.style.width =
+            safeValue + "%";
+
+    }
+
+
+    if (progressText) {
+
+        progressText.textContent =
+            Math.round(
+                safeValue
+            ) + "%";
+
+    }
 
 }
-// ==========================================
-// Upload Button
-// ==========================================
-
-if (uploadButton) {
-
-    uploadButton.addEventListener(
-        "click",
-        async () => {
-
-            // ==================================
-            // Check File
-            // ==================================
-
-            if (!selectedFile) {
-
-                alert(
-                    "Please select a video or photo first."
-                );
-
-                return;
-
-            }
-
-
-            // ==================================
-            // Disable
-            // ==================================
-
-            uploadButton.disabled =
-                true;
-
-
-            uploadButton.textContent =
-                "Uploading...";
-
-
-            setProgress(0);
-
-
-            // ==================================
-            // Form Data
-            // ==================================
-
-            const formData =
-                new FormData();
-
-
-            // ==================================
-            // Correct Field
-            // ==================================
-
-            if (
-                selectedUploadType ===
-                "photo"
-            ) {
-
-                formData.append(
-                    "photo",
-                    selectedFile
-                );
-
-            }
-
-            else {
-
-                formData.append(
-                    "video",
-                    selectedFile
-                );
-
-            }
-
-
-            // ==================================
-            // Details
-            // ==================================
-
-            const titleInput =
-                document.querySelector(
-                    ".title-input"
-                );
-
-
-            const descriptionInput =
-                document.querySelector(
-                    ".description-input"
-                );
-
-
-            if (titleInput) {
-
-                formData.append(
-                    "title",
-                    titleInput.value
-                );
-
-            }
-
-
-            if (descriptionInput) {
-
-                formData.append(
-                    "description",
-                    descriptionInput.value
-                );
-
-
-                formData.append(
-                    "caption",
-                    descriptionInput.value
-                );
-
-            }
-
-
-            if (category) {
-
-                formData.append(
-                    "category",
-                    category.value
-                );
-
-            }
-
-
-            if (linkInput) {
-
-                formData.append(
-                    "link",
-                    linkInput.value
-                );
-
-            }
-
-
-            if (tagsInput) {
-
-                formData.append(
-                    "tags",
-                    tagsInput.value
-                );
-
-            }
-
-
-            // ==================================
-            // Upload Settings
-            // ==================================
-
-            if (uploadQuality) {
-
-                formData.append(
-                    "uploadQuality",
-                    uploadQuality.value
-                );
-
-            }
-
-
-            if (defaultPrivacy) {
-
-                formData.append(
-                    "privacy",
-                    defaultPrivacy.value
-                );
-
-            }
-
-
-            if (defaultComments) {
-
-                formData.append(
-                    "comments",
-                    defaultComments.value
-                );
-
-            }
-
-
-            if (
-                customThumbnailSetting
-            ) {
-
-                formData.append(
-                    "customThumbnail",
-                    customThumbnailSetting.checked
-                );
-
-            }
-
-
-            // ==================================
-            // Custom Thumbnail
-            // ==================================
-
-            if (selectedThumbnail) {
-
-                formData.append(
-                    "thumbnail",
-                    selectedThumbnail
-                );
-
-            }
-
-
-            // ==================================
-            // Upload URL
-            // ==================================
-
-            const uploadRoute =
-                selectedUploadType ===
-                "photo"
-
-                    ? "/api/upload/photo"
-
-                    : "/api/upload/video";
-
-
-            try {
-
-                console.log(
-                    "Uploading to:",
-                    API_URL +
-                    uploadRoute
-                );
-
-
-                setProgress(10);
-
-
-                // ==================================
-                // AUTHENTICATED UPLOAD
-                // Firebase ID Token will be
-                // automatically added by apiFetch()
-                // ==================================
-
-                const result =
-                    await apiFetch(
-                        uploadRoute,
-                        {
-                            method: "POST",
-                            body: formData
-                        }
-                    );
-
-
-                setProgress(70);
-
-
-                console.log(
-                    "Backend response:",
-                    result
-                );
-
-
-                // ==================================
-                // SUCCESS
-                // ==================================
-
-                if (result.success) {
-
-                    setProgress(100);
-
-
-                    if (
-                        selectedUploadType ===
-                        "photo"
-                    ) {
-
-                        alert(
-                            "✅ Photo Uploaded Successfully!"
-                        );
-
-                    }
-
-                    else {
-
-                        alert(
-                            "✅ Video Uploaded Successfully!"
-                        );
-
-                    }
-
-
-                    console.log(
-                        "Post ID:",
-                        result.id
-                    );
-
-
-                    console.log(
-                        "Media URL:",
-                        result.photoUrl ||
-                        result.videoUrl
-                    );
-
-
-                    resetUploadForm();
-
-                }
-
-
-                // ==================================
-                // ERROR
-                // ==================================
-
-                else {
-
-                    alert(
-                        result.error ||
-                        result.message ||
-                        "Upload Failed"
-                    );
-
-                }
-
-            }
-
-
-            catch (error) {
-
-                console.error(
-                    "Upload error:",
-                    error
-                );
-
-
-                // ==================================
-                // Authentication Error
-                // ==================================
-
-                if (
-                    error.message &&
-                    (
-                        error.message
-                            .toLowerCase()
-                            .includes("logged in")
-                        ||
-                        error.message
-                            .toLowerCase()
-                            .includes("authentication")
-                    )
-                ) {
-
-                    alert(
-                        "Please login again before uploading."
-                    );
-
-                    return;
-
-                }
-
-
-                // ==================================
-                // Normal Error
-                // ==================================
-
-                alert(
-                    error.message ||
-                    "Unable to connect to the server."
-                );
-
-            }
-
-
-            // ==================================
-            // Restore Button
-            // ==================================
-
-            finally {
-
-                uploadButton.disabled =
-                    false;
-
-
-                uploadButton.textContent =
-                    "Upload Now";
-
-            }
-
-        }
-    );
-
-}
-// ==========================================
-// UPLOAD SETTINGS
-// ==========================================
 
 
 // ==========================================
-// Open / Close Settings
+// Upload Settings
 // ==========================================
 
 if (uploadSettingsBtn) {
@@ -1280,28 +825,11 @@ if (uploadSettingsBtn) {
         "click",
         () => {
 
-            if (
-                uploadSettingsPanel.style.display ===
-                "none"
-            ) {
+            if (uploadSettingsPanel) {
 
-                uploadSettingsPanel.style.display =
-                    "block";
-
-
-                uploadSettingsBtn.textContent =
-                    "⚙ Settings";
-
-            }
-
-            else {
-
-                uploadSettingsPanel.style.display =
-                    "none";
-
-
-                uploadSettingsBtn.textContent =
-                    "⚙ Upload Settings";
+                uploadSettingsPanel.classList.toggle(
+                    "hidden"
+                );
 
             }
 
@@ -1310,10 +838,6 @@ if (uploadSettingsBtn) {
 
 }
 
-
-// ==========================================
-// Close Settings
-// ==========================================
 
 if (uploadSettingsClose) {
 
@@ -1321,22 +845,19 @@ if (uploadSettingsClose) {
         "click",
         () => {
 
-            uploadSettingsPanel.style.display =
-                "none";
+            if (uploadSettingsPanel) {
 
+                uploadSettingsPanel.classList.add(
+                    "hidden"
+                );
 
-            uploadSettingsBtn.textContent =
-                "⚙ Upload Settings";
+            }
 
         }
     );
 
 }
 
-
-// ==========================================
-// Save Settings
-// ==========================================
 
 if (saveUploadSettings) {
 
@@ -1344,221 +865,47 @@ if (saveUploadSettings) {
         "click",
         () => {
 
-            const quality =
-                uploadQuality?.value ||
-                "auto";
+            const settings = {
 
+                quality:
+                    uploadQuality?.value ||
+                    "auto",
 
-            const privacy =
-                defaultPrivacy?.value ||
-                "public";
+                privacy:
+                    defaultPrivacy?.value ||
+                    "public",
 
+                comments:
+                    defaultComments?.value ||
+                    "on",
 
-            const comments =
-                defaultComments?.value ||
-                "allow";
+                customThumbnail:
+                    customThumbnailSetting?.checked ||
+                    false
 
-
-            const customThumbnail =
-                customThumbnailSetting
-                    ?.checked ??
-                true;
-
-
-            // ==================================
-            // Save to Local Storage
-            // ==================================
-
-            localStorage.setItem(
-                "botProUploadQuality",
-                quality
-            );
+            };
 
 
             localStorage.setItem(
-                "botProUploadPrivacy",
-                privacy
+                "botpro_upload_settings",
+                JSON.stringify(
+                    settings
+                )
             );
 
 
-            localStorage.setItem(
-                "botProUploadComments",
-                comments
-            );
+            if (uploadSettingsPanel) {
 
+                uploadSettingsPanel.classList.add(
+                    "hidden"
+                );
 
-            localStorage.setItem(
-                "botProCustomThumbnail",
-                customThumbnail
-            );
+            }
 
-
-            alert(
-                "✅ Upload Settings Saved"
-            );
-
-
-            uploadSettingsPanel.style.display =
-                "none";
-
-
-            uploadSettingsBtn.textContent =
-                "⚙ Upload Settings";
-
-        }
-    );
-
-}
-
-
-// ==========================================
-// Load Settings
-// ==========================================
-
-function loadUploadSettings() {
-
-    const quality =
-        localStorage.getItem(
-            "botProUploadQuality"
-        );
-
-
-    const privacy =
-        localStorage.getItem(
-            "botProUploadPrivacy"
-        );
-
-
-    const comments =
-        localStorage.getItem(
-            "botProUploadComments"
-        );
-
-
-    const customThumbnail =
-        localStorage.getItem(
-            "botProCustomThumbnail"
-        );
-
-
-    // ==================================
-    // Quality
-    // ==================================
-
-    if (
-        quality &&
-        uploadQuality
-    ) {
-
-        uploadQuality.value =
-            quality;
-
-    }
-
-
-    // ==================================
-    // Privacy
-    // ==================================
-
-    if (
-        privacy &&
-        defaultPrivacy
-    ) {
-
-        defaultPrivacy.value =
-            privacy;
-
-    }
-
-
-    // ==================================
-    // Comments
-    // ==================================
-
-    if (
-        comments &&
-        defaultComments
-    ) {
-
-        defaultComments.value =
-            comments;
-
-    }
-
-
-    // ==================================
-    // Custom Thumbnail
-    // ==================================
-
-    if (
-        customThumbnail !== null &&
-        customThumbnailSetting
-    ) {
-
-        customThumbnailSetting.checked =
-            customThumbnail ===
-            "true";
-
-    }
-
-}
-
-
-// ==========================================
-// Category
-// ==========================================
-
-if (category) {
-
-    category.addEventListener(
-        "change",
-        () => {
 
             console.log(
-                "Category:",
-                category.value
-            );
-
-        }
-    );
-
-}
-
-
-// ==========================================
-// Link
-// ==========================================
-
-if (linkInput) {
-
-    linkInput.addEventListener(
-        "input",
-        () => {
-
-            console.log(
-                "Link:",
-                linkInput.value
-            );
-
-        }
-    );
-
-}
-
-
-// ==========================================
-// Tags
-// ==========================================
-
-if (tagsInput) {
-
-    tagsInput.addEventListener(
-        "input",
-        () => {
-
-            console.log(
-                "Tags:",
-                tagsInput.value
+                "⚙️ Upload settings saved:",
+                settings
             );
 
         }
@@ -1577,186 +924,588 @@ if (backButton) {
         "click",
         () => {
 
-            window.history.back();
+            if (
+                window.history.length > 1
+            ) {
+
+                window.history.back();
+
+            }
+
+            else {
+
+                window.location.href =
+                    "home.html";
+
+            }
 
         }
     );
 
 }
 // ==========================================
-// Bottom Navigation
+// UPLOAD VIDEO / PHOTO
 // ==========================================
 
-const navLinks =
-    document.querySelectorAll(
-        ".bottom-nav a"
-    );
+if (uploadButton) {
+
+    uploadButton.addEventListener(
+        "click",
+        async () => {
+
+            // ==================================
+            // Check Login Again
+            // ==================================
+
+            const user =
+                await waitForAuth();
 
 
-navLinks.forEach(
-    (link) => {
+            if (!user) {
 
-        link.addEventListener(
-            "click",
-            () => {
+                alert(
+                    "Please login before uploading."
+                );
 
-                navLinks.forEach(
-                    (item) => {
+                return;
 
-                        item.classList.remove(
-                            "active"
+            }
+
+
+            // ==================================
+            // Check File
+            // ==================================
+
+            if (!selectedFile) {
+
+                alert(
+                    "Please select a video or photo first."
+                );
+
+                return;
+
+            }
+
+
+            // ==================================
+            // File Size
+            // ==================================
+
+            const maxSize =
+                2 * 1024 * 1024 * 1024;
+
+
+            if (
+                selectedFile.size >
+                maxSize
+            ) {
+
+                alert(
+                    "Maximum file size is 2GB."
+                );
+
+                return;
+
+            }
+
+
+            // ==================================
+            // Disable Button
+            // ==================================
+
+            uploadButton.disabled =
+                true;
+
+
+            uploadButton.textContent =
+                "Uploading...";
+
+
+            setProgress(
+                0
+            );
+
+
+            try {
+
+                // ==================================
+                // Form Data
+                // ==================================
+
+                const formData =
+                    new FormData();
+
+
+                // ==================================
+                // Video / Photo Field
+                // ==================================
+
+                if (
+                    selectedUploadType ===
+                    "photo"
+                ) {
+
+                    formData.append(
+                        "photo",
+                        selectedFile
+                    );
+
+                }
+
+                else {
+
+                    formData.append(
+                        "video",
+                        selectedFile
+                    );
+
+                }
+
+
+                // ==================================
+                // Title
+                // ==================================
+
+                const titleInput =
+                    document.querySelector(
+                        ".title-input"
+                    );
+
+
+                if (titleInput) {
+
+                    formData.append(
+                        "title",
+                        titleInput.value.trim()
+                    );
+
+                }
+
+
+                // ==================================
+                // Description
+                // ==================================
+
+                const descriptionInput =
+                    document.querySelector(
+                        ".description-input"
+                    );
+
+
+                if (descriptionInput) {
+
+                    const description =
+                        descriptionInput.value.trim();
+
+
+                    formData.append(
+                        "description",
+                        description
+                    );
+
+
+                    formData.append(
+                        "caption",
+                        description
+                    );
+
+                }
+
+
+                // ==================================
+                // Category
+                // ==================================
+
+                if (category) {
+
+                    formData.append(
+                        "category",
+                        category.value
+                    );
+
+                }
+
+
+                // ==================================
+                // Tags
+                // ==================================
+
+                if (tagsInput) {
+
+                    formData.append(
+                        "tags",
+                        tagsInput.value.trim()
+                    );
+
+                }
+
+
+                // ==================================
+                // Upload Type
+                // ==================================
+
+                formData.append(
+                    "uploadType",
+                    selectedUploadType
+                );
+
+
+                // ==================================
+                // Thumbnail
+                // ==================================
+
+                if (
+                    selectedThumbnail
+                ) {
+
+                    formData.append(
+                        "thumbnail",
+                        selectedThumbnail
+                    );
+
+                }
+
+
+                // ==================================
+                // Privacy
+                // ==================================
+
+                const settingsRaw =
+                    localStorage.getItem(
+                        "botpro_upload_settings"
+                    );
+
+
+                if (settingsRaw) {
+
+                    try {
+
+                        const settings =
+                            JSON.parse(
+                                settingsRaw
+                            );
+
+
+                        if (
+                            settings.privacy
+                        ) {
+
+                            formData.append(
+                                "privacy",
+                                settings.privacy
+                            );
+
+                        }
+
+
+                        if (
+                            settings.comments
+                        ) {
+
+                            formData.append(
+                                "comments",
+                                settings.comments
+                            );
+
+                        }
+
+                    }
+
+                    catch (error) {
+
+                        console.log(
+                            "Settings parse skipped"
                         );
 
                     }
+
+                }
+
+
+                console.log(
+                    "🚀 Starting authenticated upload..."
                 );
 
 
-                link.classList.add(
-                    "active"
+                console.log(
+                    "👤 Firebase UID:",
+                    user.uid
+                );
+
+
+                console.log(
+                    "📁 File:",
+                    selectedFile.name
+                );
+
+
+                console.log(
+                    "📦 Type:",
+                    selectedFile.type
+                );
+
+
+                // ==================================
+                // Upload With Firebase Token
+                // ==================================
+
+                const token =
+                    await user.getIdToken();
+
+
+                const xhr =
+                    new XMLHttpRequest();
+
+
+                const uploadResult =
+                    await new Promise(
+                        (
+                            resolve,
+                            reject
+                        ) => {
+
+
+                            xhr.open(
+                                "POST",
+                                API_URL +
+                                "/api/upload/video"
+                            );
+
+
+                            // ==================================
+                            // Firebase Authorization
+                            // ==================================
+
+                            xhr.setRequestHeader(
+                                "Authorization",
+                                "Bearer " +
+                                token
+                            );
+
+
+                            // ==================================
+                            // Upload Progress
+                            // ==================================
+
+                            xhr.upload.addEventListener(
+                                "progress",
+                                (event) => {
+
+                                    if (
+                                        event.lengthComputable
+                                    ) {
+
+                                        const percent =
+                                            (
+                                                event.loaded /
+                                                event.total
+                                            ) *
+                                            100;
+
+
+                                        setProgress(
+                                            percent
+                                        );
+
+                                    }
+
+                                }
+                            );
+
+
+                            // ==================================
+                            // Upload Complete
+                            // ==================================
+
+                            xhr.addEventListener(
+                                "load",
+                                () => {
+
+                                    let data;
+
+
+                                    try {
+
+                                        data =
+                                            JSON.parse(
+                                                xhr.responseText
+                                            );
+
+                                    }
+
+                                    catch (
+                                        error
+                                    ) {
+
+                                        reject(
+                                            new Error(
+                                                "Invalid server response."
+                                            )
+                                        );
+
+                                        return;
+
+                                    }
+
+
+                                    console.log(
+                                        "📦 Upload response:",
+                                        data
+                                    );
+
+
+                                    if (
+                                        xhr.status >= 200 &&
+                                        xhr.status < 300
+                                    ) {
+
+                                        resolve(
+                                            data
+                                        );
+
+                                    }
+
+                                    else {
+
+                                        reject(
+                                            new Error(
+                                                data.error ||
+                                                data.message ||
+                                                "Upload failed (" +
+                                                xhr.status +
+                                                ")"
+                                            )
+                                        );
+
+                                    }
+
+                                }
+                            );
+
+
+                            // ==================================
+                            // Network Error
+                            // ==================================
+
+                            xhr.addEventListener(
+                                "error",
+                                () => {
+
+                                    reject(
+                                        new Error(
+                                            "Network error while uploading."
+                                        )
+                                    );
+
+                                }
+                            );
+
+
+                            // ==================================
+                            // Upload Cancelled
+                            // ==================================
+
+                            xhr.addEventListener(
+                                "abort",
+                                () => {
+
+                                    reject(
+                                        new Error(
+                                            "Upload cancelled."
+                                        )
+                                    );
+
+                                }
+                            );
+
+
+                            // ==================================
+                            // Send
+                            // ==================================
+
+                            xhr.send(
+                                formData
+                            );
+
+                        }
+                    );
+
+
+                // ==================================
+                // Upload Success
+                // ==================================
+
+                setProgress(
+                    100
+                );
+
+
+                console.log(
+                    "✅ Upload successful:",
+                    uploadResult
+                );
+
+
+                alert(
+                    "Uploaded successfully!"
+                );
+
+
+                // ==================================
+                // Go Home
+                // ==================================
+
+                window.location.href =
+                    "home.html";
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "❌ Upload Error:",
+                    error
+                );
+
+
+                alert(
+                    error.message ||
+                    "Upload failed. Please try again."
                 );
 
             }
-        );
 
-    }
-);
+            finally {
 
-
-// ==========================================
-// Reset Complete Form
-// ==========================================
-
-function resetUploadForm() {
-
-    // ==================================
-    // Reset Main File
-    // ==================================
-
-    resetMainFile();
+                uploadButton.disabled =
+                    false;
 
 
-    // ==================================
-    // Reset Thumbnail
-    // ==================================
+                uploadButton.textContent =
+                    "Upload";
 
-    resetThumbnail();
+            }
 
-
-    // ==================================
-    // Reset Title
-    // ==================================
-
-    const titleInput =
-        document.querySelector(
-            ".title-input"
-        );
-
-
-    // ==================================
-    // Reset Description
-    // ==================================
-
-    const descriptionInput =
-        document.querySelector(
-            ".description-input"
-        );
-
-
-    if (titleInput) {
-
-        titleInput.value =
-            "";
-
-    }
-
-
-    if (descriptionInput) {
-
-        descriptionInput.value =
-            "";
-
-    }
-
-
-    // ==================================
-    // Reset Category
-    // ==================================
-
-    if (category) {
-
-        category.selectedIndex =
-            0;
-
-    }
-
-
-    // ==================================
-    // Reset Link
-    // ==================================
-
-    if (linkInput) {
-
-        linkInput.value =
-            "";
-
-    }
-
-
-    // ==================================
-    // Reset Tags
-    // ==================================
-
-    if (tagsInput) {
-
-        tagsInput.value =
-            "";
-
-    }
-
-
-    // ==================================
-    // Reset Progress
-    // ==================================
-
-    setProgress(0);
+        }
+    );
 
 }
 
 
 // ==========================================
-// Page Ready
+// PAGE READY
 // ==========================================
 
-window.addEventListener(
-    "load",
-    () => {
-
-        loadUploadSettings();
-
-
-        console.log(
-            "🚀 Bot Pro Upload Ready"
-        );
-
-
-        console.log(
-            "🖼️ Photo Upload Ready"
-        );
-
-
-        console.log(
-            "⚙️ Upload Settings Ready"
-        );
-
-
-        console.log(
-            "🔐 Firebase Authentication Ready"
-        );
-
-
-        console.log(
-            "🚂 Railway Integration Ready"
-        );
-
-    }
+console.log(
+    "🚀 Bot Pro Upload Page Loaded"
 );
+
+
+console.log(
+    "🔐 Firebase authenticated upload ready"
+);
+
+
+// ==========================================
+// END OF UPLOAD.JS
+// ==========================================
