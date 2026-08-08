@@ -8,6 +8,11 @@
 // Backend API
 // ==========================================
 
+import {
+    apiFetch,
+    waitForAuth
+} from "../firebase/api.js";
+
 const API_URL =
     "https://bot-pro-backend-production.up.railway.app";
 
@@ -24,7 +29,7 @@ const API_URL =
    authenticated user ID.
 */
 
-const USER_ID =
+let USER_ID =
     localStorage.getItem(
         "botpro_user_id"
     ) ||
@@ -400,35 +405,24 @@ async function loadVideo() {
         }
 
 
-        const response =
-            await fetch(
-
-                API_URL +
+        const result =
+            await apiFetch(
                 "/api/upload/posts",
-
                 {
-
                     method:
-                        "GET",
-
-                    cache:
-                        "no-store"
-
+                        "GET"
                 }
-
             );
 
 
-        const result =
-            await response.json();
-
-
         if (
-            !response.ok ||
+            !result ||
             !result.success
         ) {
 
             throw new Error(
+                result?.message ||
+                result?.error ||
                 "Unable to load videos"
             );
 
@@ -628,10 +622,1189 @@ function showVideoError(
     }
 
 }
+// ==========================================
+// LIKE STATE
+// ==========================================
+
+async function loadLikeState() {
+
+    if (
+        !currentVideo ||
+        !likeBtn
+    ) {
+
+        return;
+
+    }
+
+
+    const likes =
+        currentVideo.likes || {};
+
+
+    const liked =
+        Object.prototype.hasOwnProperty.call(
+            likes,
+            USER_ID
+        );
+
+
+    likeBtn.classList.toggle(
+        "active",
+        liked
+    );
+
+
+    const likeCount =
+        Object.keys(
+            likes
+        ).length;
+
+
+    const likeCountElement =
+        document.getElementById(
+            "likeCount"
+        );
+
+
+    if (likeCountElement) {
+
+        likeCountElement.textContent =
+            likeCount;
+
+    }
+
+}
 
 
 // ==========================================
-// Video Loaded
+// SAVE STATE
+// ==========================================
+
+async function loadSaveState() {
+
+    if (
+        !currentVideo ||
+        !saveBtn
+    ) {
+
+        return;
+
+    }
+
+
+    const saves =
+        currentVideo.saves || {};
+
+
+    const saved =
+        Object.prototype.hasOwnProperty.call(
+            saves,
+            USER_ID
+        );
+
+
+    saveBtn.classList.toggle(
+        "active",
+        saved
+    );
+
+}
+
+
+// ==========================================
+// LIKE / UNLIKE
+// ==========================================
+
+async function toggleLike() {
+
+    if (!currentVideo) {
+
+        return;
+
+    }
+
+
+    try {
+
+        if (likeBtn) {
+
+            likeBtn.disabled =
+                true;
+
+        }
+
+
+        const result =
+            await apiFetch(
+                "/api/upload/like/" +
+                encodeURIComponent(
+                    currentVideo.id
+                ),
+                {
+
+                    method:
+                        "POST",
+
+                    body:
+                        JSON.stringify({
+
+                            userId:
+                                USER_ID
+
+                        })
+
+                }
+            );
+
+
+        if (
+            !result ||
+            !result.success
+        ) {
+
+            throw new Error(
+                result?.message ||
+                "Unable to like video"
+            );
+
+        }
+
+
+        if (likeBtn) {
+
+            likeBtn.classList.toggle(
+                "active",
+                Boolean(
+                    result.liked
+                )
+            );
+
+        }
+
+
+        const likeCountElement =
+            document.getElementById(
+                "likeCount"
+            );
+
+
+        if (likeCountElement) {
+
+            likeCountElement.textContent =
+                result.likeCount ??
+                0;
+
+        }
+
+
+        showToast(
+            result.liked
+                ? "Liked"
+                : "Like removed"
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Like Error:",
+            error
+        );
+
+
+        showToast(
+            "Unable to update like"
+        );
+
+    }
+
+    finally {
+
+        if (likeBtn) {
+
+            likeBtn.disabled =
+                false;
+
+        }
+
+    }
+
+}
+
+
+// ==========================================
+// SAVE / UNSAVE
+// ==========================================
+
+async function toggleSave() {
+
+    if (!currentVideo) {
+
+        return;
+
+    }
+
+
+    try {
+
+        if (saveBtn) {
+
+            saveBtn.disabled =
+                true;
+
+        }
+
+
+        const result =
+            await apiFetch(
+                "/api/upload/save/" +
+                encodeURIComponent(
+                    currentVideo.id
+                ),
+                {
+
+                    method:
+                        "POST",
+
+                    body:
+                        JSON.stringify({
+
+                            userId:
+                                USER_ID
+
+                        })
+
+                }
+            );
+
+
+        if (
+            !result ||
+            !result.success
+        ) {
+
+            throw new Error(
+                result?.message ||
+                "Unable to save video"
+            );
+
+        }
+
+
+        if (saveBtn) {
+
+            saveBtn.classList.toggle(
+                "active",
+                Boolean(
+                    result.saved
+                )
+            );
+
+        }
+
+
+        showToast(
+            result.saved
+                ? "Video saved"
+                : "Video removed from saved"
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Save Error:",
+            error
+        );
+
+
+        showToast(
+            "Unable to save video"
+        );
+
+    }
+
+    finally {
+
+        if (saveBtn) {
+
+            saveBtn.disabled =
+                false;
+
+        }
+
+    }
+
+}
+
+
+// ==========================================
+// LOAD COMMENTS
+// ==========================================
+
+async function loadComments() {
+
+    if (!currentVideo) {
+
+        return;
+
+    }
+
+
+    try {
+
+        const result =
+            await apiFetch(
+                "/api/upload/comment/" +
+                encodeURIComponent(
+                    currentVideo.id
+                ),
+                {
+
+                    method:
+                        "GET"
+
+                }
+            );
+
+
+        if (
+            !result ||
+            !result.success
+        ) {
+
+            throw new Error(
+                result?.message ||
+                "Unable to load comments"
+            );
+
+        }
+
+
+        currentComments =
+            Array.isArray(
+                result.comments
+            )
+                ? result.comments
+                : [];
+
+
+        renderComments();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Comments Load Error:",
+            error
+        );
+
+
+        currentComments =
+            [];
+
+
+        renderComments();
+
+    }
+
+}
+
+
+// ==========================================
+// RENDER COMMENTS
+// ==========================================
+
+function renderComments() {
+
+    if (!commentsList) {
+
+        return;
+
+    }
+
+
+    commentsList.innerHTML =
+        "";
+
+
+    if (commentCount) {
+
+        commentCount.textContent =
+            currentComments.length;
+
+    }
+
+
+    if (
+        currentComments.length === 0
+    ) {
+
+        const empty =
+            document.createElement(
+                "div"
+            );
+
+
+        empty.className =
+            "no-comments";
+
+
+        empty.textContent =
+            "No comments yet. Be the first to comment.";
+
+
+        commentsList.appendChild(
+            empty
+        );
+
+
+        return;
+
+    }
+
+
+    currentComments.forEach(
+        (comment) => {
+
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+
+            item.className =
+                "comment-item";
+
+
+            const avatar =
+                document.createElement(
+                    "div"
+                );
+
+
+            avatar.className =
+                "comment-avatar";
+
+
+            const name =
+                comment.userName ||
+                "User";
+
+
+            avatar.textContent =
+                name
+                    .charAt(0)
+                    .toUpperCase();
+
+
+            const content =
+                document.createElement(
+                    "div"
+                );
+
+
+            content.className =
+                "comment-content";
+
+
+            const author =
+                document.createElement(
+                    "strong"
+                );
+
+
+            author.textContent =
+                name;
+
+
+            const text =
+                document.createElement(
+                    "p"
+                );
+
+
+            text.textContent =
+                comment.text ||
+                "";
+
+
+            const time =
+                document.createElement(
+                    "small"
+                );
+
+
+            time.textContent =
+                formatTime(
+                    comment.createdAt
+                );
+
+
+            content.appendChild(
+                author
+            );
+
+
+            content.appendChild(
+                text
+            );
+
+
+            content.appendChild(
+                time
+            );
+
+
+            // =================================
+            // Delete own comment
+            // =================================
+
+            if (
+                String(
+                    comment.userId
+                ) ===
+                String(
+                    USER_ID
+                )
+            ) {
+
+                const deleteBtn =
+                    document.createElement(
+                        "button"
+                    );
+
+
+                deleteBtn.type =
+                    "button";
+
+
+                deleteBtn.className =
+                    "delete-comment";
+
+
+                deleteBtn.textContent =
+                    "Delete";
+
+
+                deleteBtn.addEventListener(
+                    "click",
+                    () => {
+
+                        deleteComment(
+                            comment.id
+                        );
+
+                    }
+                );
+
+
+                content.appendChild(
+                    deleteBtn
+                );
+
+            }
+
+
+            item.appendChild(
+                avatar
+            );
+
+
+            item.appendChild(
+                content
+            );
+
+
+            commentsList.appendChild(
+                item
+            );
+
+        }
+    );
+
+}
+
+
+// ==========================================
+// ADD COMMENT
+// ==========================================
+
+async function addComment() {
+
+    if (!currentVideo) {
+
+        return;
+
+    }
+
+
+    if (!commentInput) {
+
+        return;
+
+    }
+
+
+    const text =
+        commentInput.value.trim();
+
+
+    if (!text) {
+
+        showToast(
+            "Write a comment first"
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        if (sendCommentBtn) {
+
+            sendCommentBtn.disabled =
+                true;
+
+        }
+
+
+        const result =
+            await apiFetch(
+                "/api/upload/comment/" +
+                encodeURIComponent(
+                    currentVideo.id
+                ),
+                {
+
+                    method:
+                        "POST",
+
+                    body:
+                        JSON.stringify({
+
+                            userId:
+                                USER_ID,
+
+                            userName:
+                                USER_NAME,
+
+                            text:
+                                text
+
+                        })
+
+                }
+            );
+
+
+        if (
+            !result ||
+            !result.success
+        ) {
+
+            throw new Error(
+                result?.message ||
+                "Unable to add comment"
+            );
+
+        }
+
+
+        commentInput.value =
+            "";
+
+
+        showToast(
+            "Comment added"
+        );
+
+
+        await loadComments();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Comment Error:",
+            error
+        );
+
+
+        showToast(
+            "Unable to add comment"
+        );
+
+    }
+
+    finally {
+
+        if (sendCommentBtn) {
+
+            sendCommentBtn.disabled =
+                false;
+
+        }
+
+    }
+
+}
+
+
+// ==========================================
+// DELETE COMMENT
+// ==========================================
+
+async function deleteComment(
+    commentId
+) {
+
+    if (
+        !currentVideo ||
+        !commentId
+    ) {
+
+        return;
+
+    }
+
+
+    try {
+
+        const result =
+            await apiFetch(
+                "/api/upload/comment/" +
+                encodeURIComponent(
+                    currentVideo.id
+                ) +
+                "/" +
+                encodeURIComponent(
+                    commentId
+                ),
+                {
+
+                    method:
+                        "DELETE"
+
+                }
+            );
+
+
+        if (
+            !result ||
+            !result.success
+        ) {
+
+            throw new Error(
+                result?.message ||
+                "Unable to delete comment"
+            );
+
+        }
+
+
+        showToast(
+            "Comment deleted"
+        );
+
+
+        await loadComments();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Delete Comment Error:",
+            error
+        );
+
+
+        showToast(
+            "Unable to delete comment"
+        );
+
+    }
+
+}
+
+
+// ==========================================
+// SHARE VIDEO
+// ==========================================
+
+async function shareVideo() {
+
+    if (!currentVideo) {
+
+        return;
+
+    }
+
+
+    const shareUrl =
+        window.location.href;
+
+
+    try {
+
+        if (
+            navigator.share
+        ) {
+
+            await navigator.share({
+
+                title:
+                    currentVideo.caption ||
+                    "Bot Pro Video",
+
+                text:
+                    "Watch this video on Bot Pro",
+
+                url:
+                    shareUrl
+
+            });
+
+        }
+
+        else {
+
+            await navigator.clipboard.writeText(
+                shareUrl
+            );
+
+
+            showToast(
+                "Video link copied"
+            );
+
+        }
+
+    }
+
+    catch (error) {
+
+        if (
+            error.name !==
+            "AbortError"
+        ) {
+
+            console.error(
+                "Share Error:",
+                error
+            );
+
+        }
+
+    }
+
+}
+
+
+// ==========================================
+// COPY LINK
+// ==========================================
+
+async function copyVideoLink() {
+
+    try {
+
+        await navigator.clipboard.writeText(
+            window.location.href
+        );
+
+
+        showToast(
+            "Link copied"
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Copy Link Error:",
+            error
+        );
+
+
+        showToast(
+            "Unable to copy link"
+        );
+
+    }
+
+}
+// ==========================================
+// BACK BUTTON
+// ==========================================
+
+if (backBtn) {
+
+    backBtn.addEventListener(
+        "click",
+        () => {
+
+            if (
+                window.history.length > 1
+            ) {
+
+                window.history.back();
+
+            }
+
+            else {
+
+                window.location.href =
+                    "home.html";
+
+            }
+
+        }
+    );
+
+}
+
+
+// ==========================================
+// MORE MENU
+// ==========================================
+
+if (moreBtn && moreMenu) {
+
+    moreBtn.addEventListener(
+        "click",
+        (event) => {
+
+            event.stopPropagation();
+
+            moreMenu.classList.toggle(
+                "hidden"
+            );
+
+        }
+    );
+
+}
+
+
+document.addEventListener(
+    "click",
+    (event) => {
+
+        if (
+            moreMenu &&
+            moreBtn &&
+            !moreMenu.contains(
+                event.target
+            ) &&
+            !moreBtn.contains(
+                event.target
+            )
+        ) {
+
+            moreMenu.classList.add(
+                "hidden"
+            );
+
+        }
+
+    }
+);
+
+
+// ==========================================
+// LIKE BUTTON
+// ==========================================
+
+if (likeBtn) {
+
+    likeBtn.addEventListener(
+        "click",
+        async () => {
+
+            await toggleLike();
+
+        }
+    );
+
+}
+
+
+// ==========================================
+// SAVE BUTTON
+// ==========================================
+
+if (saveBtn) {
+
+    saveBtn.addEventListener(
+        "click",
+        async () => {
+
+            await toggleSave();
+
+        }
+    );
+
+}
+
+
+// ==========================================
+// SHARE BUTTON
+// ==========================================
+
+if (shareBtn) {
+
+    shareBtn.addEventListener(
+        "click",
+        async () => {
+
+            await shareVideo();
+
+        }
+    );
+
+}
+
+
+// ==========================================
+// COMMENT BUTTON
+// ==========================================
+
+if (commentBtn) {
+
+    commentBtn.addEventListener(
+        "click",
+        () => {
+
+            if (commentsSection) {
+
+                commentsSection.scrollIntoView({
+
+                    behavior:
+                        "smooth",
+
+                    block:
+                        "start"
+
+                });
+
+            }
+
+
+            if (commentInput) {
+
+                setTimeout(
+                    () => {
+
+                        commentInput.focus();
+
+                    },
+                    400
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+// ==========================================
+// SEND COMMENT
+// ==========================================
+
+if (sendCommentBtn) {
+
+    sendCommentBtn.addEventListener(
+        "click",
+        async () => {
+
+            await addComment();
+
+        }
+    );
+
+}
+
+
+// ==========================================
+// ENTER TO COMMENT
+// ==========================================
+
+if (commentInput) {
+
+    commentInput.addEventListener(
+        "keydown",
+        async (event) => {
+
+            if (
+                event.key ===
+                "Enter" &&
+                !event.shiftKey
+            ) {
+
+                event.preventDefault();
+
+                await addComment();
+
+            }
+
+        }
+    );
+
+}
+
+
+// ==========================================
+// COPY LINK
+// ==========================================
+
+if (copyLinkBtn) {
+
+    copyLinkBtn.addEventListener(
+        "click",
+        async () => {
+
+            await copyVideoLink();
+
+        }
+    );
+
+}
+
+
+// ==========================================
+// REPORT
+// ==========================================
+
+if (reportBtn) {
+
+    reportBtn.addEventListener(
+        "click",
+        () => {
+
+            showToast(
+                "Report feature coming soon"
+            );
+
+        }
+    );
+
+}
+
+
+// ==========================================
+// VIDEO EVENTS
 // ==========================================
 
 if (watchVideo) {
@@ -665,96 +1838,22 @@ if (watchVideo) {
         "error",
         () => {
 
-            showVideoError(
-                "Video could not be loaded."
+            console.error(
+                "❌ Video playback error"
             );
 
-        }
-    );
 
-}
+            if (videoLoading) {
 
-
-// ==========================================
-// Auto Play
-// ==========================================
-
-if (watchVideo) {
-
-    watchVideo.addEventListener(
-        "canplay",
-        () => {
-
-            watchVideo
-                .play()
-                .catch(
-                    () => {
-
-                        console.log(
-                            "Autoplay blocked by browser"
-                        );
-
-                    }
+                videoLoading.classList.add(
+                    "hidden"
                 );
 
-        },
-        {
-            once: true
-        }
-    );
-
-}
-
-
-// ==========================================
-// Back Button
-// ==========================================
-
-if (backBtn) {
-
-    backBtn.addEventListener(
-        "click",
-        () => {
-
-            if (
-                window.history.length >
-                1
-            ) {
-
-                window.history.back();
-
             }
 
-            else {
 
-                window.location.href =
-                    "home.html";
-
-            }
-
-        }
-    );
-
-}
-
-
-// ==========================================
-// More Menu
-// ==========================================
-
-if (
-    moreBtn &&
-    moreMenu
-) {
-
-    moreBtn.addEventListener(
-        "click",
-        (event) => {
-
-            event.stopPropagation();
-
-            moreMenu.classList.toggle(
-                "hidden"
+            showVideoError(
+                "Unable to play this video."
             );
 
         }
@@ -763,186 +1862,18 @@ if (
 }
 
 
+// ==========================================
+// ESC KEY
+// ==========================================
+
 document.addEventListener(
-    "click",
+    "keydown",
     (event) => {
 
         if (
-            moreMenu &&
-            moreBtn &&
-            !moreMenu.contains(
-                event.target
-            ) &&
-            event.target !== moreBtn
+            event.key ===
+            "Escape"
         ) {
-
-            moreMenu.classList.add(
-                "hidden"
-            );
-
-        }
-
-    }
-);
-
-
-// ==========================================
-// SHARE
-// ==========================================
-
-if (shareBtn) {
-
-    shareBtn.addEventListener(
-        "click",
-        async () => {
-
-            if (!currentVideo) {
-
-                return;
-
-            }
-
-
-            const shareUrl =
-                window.location.href;
-
-
-            const shareData = {
-
-                title:
-                    currentVideo.caption ||
-                    "Bot Pro Video",
-
-                text:
-                    "Watch this video on Bot Pro",
-
-                url:
-                    shareUrl
-
-            };
-
-
-            if (
-                navigator.share
-            ) {
-
-                try {
-
-                    await navigator.share(
-                        shareData
-                    );
-
-
-                    showToast(
-                        "Shared"
-                    );
-
-                }
-
-                catch (error) {
-
-                    if (
-                        error.name !==
-                        "AbortError"
-                    ) {
-
-                        console.error(
-                            "Share Error:",
-                            error
-                        );
-
-                    }
-
-                }
-
-            }
-
-            else {
-
-                try {
-
-                    await navigator.clipboard.writeText(
-                        shareUrl
-                    );
-
-
-                    showToast(
-                        "Video link copied"
-                    );
-
-                }
-
-                catch (error) {
-
-                    showToast(
-                        "Unable to share"
-                    );
-
-                }
-
-            }
-
-        }
-    );
-
-}
-
-
-// ==========================================
-// COPY LINK
-// ==========================================
-
-if (copyLinkBtn) {
-
-    copyLinkBtn.addEventListener(
-        "click",
-        async () => {
-
-            try {
-
-                await navigator.clipboard.writeText(
-                    window.location.href
-                );
-
-
-                showToast(
-                    "Video link copied"
-                );
-
-
-                if (moreMenu) {
-
-                    moreMenu.classList.add(
-                        "hidden"
-                    );
-
-                }
-
-            }
-
-            catch (error) {
-
-                showToast(
-                    "Unable to copy link"
-                );
-
-            }
-
-        }
-    );
-
-}
-
-
-// ==========================================
-// REPORT
-// ==========================================
-
-if (reportBtn) {
-
-    reportBtn.addEventListener(
-        "click",
-        () => {
 
             if (moreMenu) {
 
@@ -952,951 +1883,10 @@ if (reportBtn) {
 
             }
 
-
-            showToast(
-                "Report feature coming soon"
-            );
-
-        }
-    );
-
-}
-
-
-// ==========================================
-// UPDATE LIKE UI
-// ==========================================
-
-function updateLikeUI(
-    liked,
-    likeCount
-) {
-
-    if (!likeBtn) {
-
-        return;
-
-    }
-
-
-    likeBtn.classList.toggle(
-        "active",
-        liked
-    );
-
-
-    const span =
-        likeBtn.querySelector(
-            "span"
-        );
-
-
-    if (!span) {
-
-        return;
-
-    }
-
-
-    if (
-        Number.isFinite(
-            Number(likeCount)
-        )
-    ) {
-
-        span.textContent =
-            liked
-                ? "Liked " +
-                    likeCount
-                : "Like " +
-                    likeCount;
-
-    }
-
-    else {
-
-        span.textContent =
-            liked
-                ? "Liked"
-                : "Like";
-
-    }
-
-}
-
-
-// ==========================================
-// LIKE VIDEO
-// ==========================================
-
-async function toggleLike() {
-
-    if (!currentVideo) {
-
-        return;
-
-    }
-
-
-    if (!likeBtn) {
-
-        return;
-
-    }
-
-
-    likeBtn.disabled =
-        true;
-
-
-    try {
-
-        const response =
-            await fetch(
-
-                API_URL +
-                "/api/upload/like/" +
-                encodeURIComponent(
-                    currentVideo.id
-                ),
-
-                {
-
-                    method:
-                        "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            userId:
-                                USER_ID
-
-                        })
-
-                }
-
-            );
-
-
-        const result =
-            await response.json();
-
-
-        if (
-            !response.ok ||
-            !result.success
-        ) {
-
-            throw new Error(
-                result.message ||
-                "Like failed"
-            );
-
-        }
-
-
-        updateLikeUI(
-
-            result.liked === true,
-
-            result.likeCount
-
-        );
-
-
-        showToast(
-
-            result.liked
-                ? "Liked"
-                : "Like removed"
-
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Like Error:",
-            error
-        );
-
-
-        showToast(
-            "Unable to update Like"
-        );
-
-    }
-
-    finally {
-
-        likeBtn.disabled =
-            false;
-
-    }
-
-}
-
-
-if (likeBtn) {
-
-    likeBtn.addEventListener(
-        "click",
-        toggleLike
-    );
-
-}
-
-
-// ==========================================
-// LOAD LIKE STATE
-// ==========================================
-
-async function loadLikeState() {
-
-    if (!currentVideo) {
-
-        return;
-
-    }
-
-
-    try {
-
-        const post =
-            currentVideo;
-
-
-        const likes =
-            post.likes || {};
-
-
-        const liked =
-            Boolean(
-                likes[USER_ID]
-            );
-
-
-        const likeCount =
-            Object.keys(
-                likes
-            ).length;
-
-
-        updateLikeUI(
-            liked,
-            likeCount
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Load Like Error:",
-            error
-        );
-
-    }
-
-}
-
-
-// ==========================================
-// UPDATE SAVE UI
-// ==========================================
-
-function updateSaveUI(
-    saved
-) {
-
-    if (!saveBtn) {
-
-        return;
-
-    }
-
-
-    saveBtn.classList.toggle(
-        "active",
-        saved
-    );
-
-
-    const span =
-        saveBtn.querySelector(
-            "span"
-        );
-
-
-    if (span) {
-
-        span.textContent =
-            saved
-                ? "Saved"
-                : "Save";
-
-    }
-
-}
-
-
-// ==========================================
-// SAVE VIDEO
-// ==========================================
-
-async function toggleSave() {
-
-    if (!currentVideo) {
-
-        return;
-
-    }
-
-
-    if (!saveBtn) {
-
-        return;
-
-    }
-
-
-    saveBtn.disabled =
-        true;
-
-
-    try {
-
-        const response =
-            await fetch(
-
-                API_URL +
-                "/api/upload/save/" +
-                encodeURIComponent(
-                    currentVideo.id
-                ),
-
-                {
-
-                    method:
-                        "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            userId:
-                                USER_ID
-
-                        })
-
-                }
-
-            );
-
-
-        const result =
-            await response.json();
-
-
-        if (
-            !response.ok ||
-            !result.success
-        ) {
-
-            throw new Error(
-                result.message ||
-                "Save failed"
-            );
-
-        }
-
-
-        updateSaveUI(
-            result.saved === true
-        );
-
-
-        showToast(
-
-            result.saved
-                ? "Saved"
-                : "Removed from Saved"
-
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Save Error:",
-            error
-        );
-
-
-        showToast(
-            "Unable to update Save"
-        );
-
-    }
-
-    finally {
-
-        saveBtn.disabled =
-            false;
-
-    }
-
-}
-
-
-if (saveBtn) {
-
-    saveBtn.addEventListener(
-        "click",
-        toggleSave
-    );
-
-}
-
-
-// ==========================================
-// LOAD SAVE STATE
-// ==========================================
-
-async function loadSaveState() {
-
-    if (!currentVideo) {
-
-        return;
-
-    }
-
-
-    try {
-
-        const saves =
-            currentVideo.saves ||
-            {};
-
-
-        const saved =
-            Boolean(
-                saves[USER_ID]
-            );
-
-
-        updateSaveUI(
-            saved
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Load Save Error:",
-            error
-        );
-
-    }
-
-}
-
-
-// ==========================================
-// UPDATE COMMENT COUNT
-// ==========================================
-
-function updateCommentCount(
-    count
-) {
-
-    if (commentCount) {
-
-        commentCount.textContent =
-            String(
-                count
-            );
-
-    }
-
-}
-
-
-// ==========================================
-// RENDER COMMENTS
-// ==========================================
-
-function renderComments() {
-
-    if (!commentsList) {
-
-        return;
-
-    }
-
-
-    commentsList.innerHTML =
-        "";
-
-
-    updateCommentCount(
-        currentComments.length
-    );
-
-
-    currentComments.forEach(
-        (comment) => {
-
-            const item =
-                document.createElement(
-                    "div"
-                );
-
-
-            item.className =
-                "comment-item";
-
-
-            const avatar =
-                document.createElement(
-                    "div"
-                );
-
-
-            avatar.className =
-                "comment-user-avatar";
-
-
-            avatar.textContent =
-                (
-                    comment.userName ||
-                    "U"
-                )
-                .charAt(0)
-                .toUpperCase();
-
-
-            const content =
-                document.createElement(
-                    "div"
-                );
-
-
-            content.className =
-                "comment-content";
-
-
-            const name =
-                document.createElement(
-                    "div"
-                );
-
-
-            name.className =
-                "comment-user-name";
-
-
-            name.textContent =
-                comment.userName ||
-                "User";
-
-
-            const text =
-                document.createElement(
-                    "div"
-                );
-
-
-            text.className =
-                "comment-text";
-
-
-            text.textContent =
-                comment.text ||
-                "";
-
-
-            const time =
-                document.createElement(
-                    "div"
-                );
-
-
-            time.className =
-                "comment-time";
-
-
-            time.textContent =
-                formatTime(
-                    comment.createdAt
-                );
-
-
-            content.appendChild(
-                name
-            );
-
-
-            content.appendChild(
-                text
-            );
-
-
-            content.appendChild(
-                time
-            );
-
-
-            item.appendChild(
-                avatar
-            );
-
-
-            item.appendChild(
-                content
-            );
-
-
-            commentsList.appendChild(
-                item
-            );
-
-        }
-    );
-
-}
-
-
-// ==========================================
-// LOAD COMMENTS
-// ==========================================
-
-async function loadComments() {
-
-    if (!currentVideo) {
-
-        return;
-
-    }
-
-
-    try {
-
-        const response =
-            await fetch(
-
-                API_URL +
-                "/api/upload/comments/" +
-                encodeURIComponent(
-                    currentVideo.id
-                ),
-
-                {
-
-                    method:
-                        "GET",
-
-                    cache:
-                        "no-store"
-
-                }
-
-            );
-
-
-        const result =
-            await response.json();
-
-
-        if (
-            !response.ok ||
-            !result.success
-        ) {
-
-            throw new Error(
-                result.message ||
-                "Unable to load comments"
-            );
-
-        }
-
-
-        currentComments =
-            Array.isArray(
-                result.comments
-            )
-                ? result.comments
-                : [];
-
-
-        renderComments();
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Load Comments Error:",
-            error
-        );
-
-
-        currentComments =
-            [];
-
-
-        renderComments();
-
-    }
-
-}
-
-
-// ==========================================
-// ADD COMMENT
-// ==========================================
-
-async function sendComment() {
-
-    if (!currentVideo) {
-
-        return;
-
-    }
-
-
-    if (!commentInput) {
-
-        return;
-
-    }
-
-
-    const text =
-        commentInput.value.trim();
-
-
-    if (!text) {
-
-        showToast(
-            "Write a comment first"
-        );
-
-        return;
-
-    }
-
-
-    if (sendCommentBtn) {
-
-        sendCommentBtn.disabled =
-            true;
-
-    }
-
-
-    try {
-
-        const response =
-            await fetch(
-
-                API_URL +
-                "/api/upload/comment/" +
-                encodeURIComponent(
-                    currentVideo.id
-                ),
-
-                {
-
-                    method:
-                        "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            userId:
-                                USER_ID,
-
-                            userName:
-                                USER_NAME,
-
-                            text:
-                                text
-
-                        })
-
-                }
-
-            );
-
-
-        const result =
-            await response.json();
-
-
-        if (
-            !response.ok ||
-            !result.success
-        ) {
-
-            throw new Error(
-                result.message ||
-                "Comment failed"
-            );
-
-        }
-
-
-        commentInput.value =
-            "";
-
-
-        if (result.comment) {
-
-            currentComments.push(
-                result.comment
-            );
-
-        }
-
-
-        renderComments();
-
-
-        showToast(
-            "Comment added"
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Comment Error:",
-            error
-        );
-
-
-        showToast(
-            "Unable to add comment"
-        );
-
-    }
-
-    finally {
-
-        if (sendCommentBtn) {
-
-            sendCommentBtn.disabled =
-                false;
-
         }
 
     }
-
-}
-
-
-if (sendCommentBtn) {
-
-    sendCommentBtn.addEventListener(
-        "click",
-        sendComment
-    );
-
-}
-
-
-if (commentInput) {
-
-    commentInput.addEventListener(
-        "keydown",
-        (event) => {
-
-            if (
-                event.key ===
-                "Enter"
-            ) {
-
-                event.preventDefault();
-
-                sendComment();
-
-            }
-
-        }
-    );
-
-}
-
-
-// ==========================================
-// COMMENT BUTTON
-// ==========================================
-
-if (commentBtn) {
-
-    commentBtn.addEventListener(
-        "click",
-        () => {
-
-            if (
-                commentsSection
-            ) {
-
-                commentsSection.scrollIntoView({
-
-                    behavior:
-                        "smooth",
-
-                    block:
-                        "start"
-
-                });
-
-            }
-
-
-            setTimeout(
-                () => {
-
-                    if (commentInput) {
-
-                        commentInput.focus();
-
-                    }
-
-                },
-                450
-            );
-
-        }
-    );
-
-}
+);
 
 
 // ==========================================
@@ -1905,7 +1895,7 @@ if (commentBtn) {
 
 window.addEventListener(
     "load",
-    () => {
+    async () => {
 
         console.log(
             "🚀 Bot Pro Watch Page Loaded"
@@ -1913,12 +1903,71 @@ window.addEventListener(
 
 
         console.log(
-            "👤 User ID:",
-            USER_ID
+            "🔐 Waiting for Firebase authentication..."
         );
 
 
-        loadVideo();
+        try {
+
+            // ==================================
+            // Wait for Firebase Auth
+            // ==================================
+
+            const user =
+                await waitForAuth();
+
+
+            if (!user) {
+
+                console.error(
+                    "❌ User is not logged in."
+                );
+
+
+                showVideoError(
+                    "Please login to watch this video."
+                );
+
+
+                return;
+
+            }
+
+
+            console.log(
+                "✅ Firebase user:",
+                user.email
+            );
+
+
+            console.log(
+                "👤 Firebase UID:",
+                user.uid
+            );
+
+
+            console.log(
+                "🎬 Loading selected video..."
+            );
+
+
+            await loadVideo();
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "❌ Watch Page Error:",
+                error
+            );
+
+
+            showVideoError(
+                "Unable to load this video."
+            );
+
+        }
 
     }
 );
@@ -1931,3 +1980,18 @@ window.addEventListener(
 console.log(
     "✅ Bot Pro Watch Firebase System Ready"
 );
+
+
+console.log(
+    "🎬 Watch Page Script Ready"
+);
+
+
+console.log(
+    "🔐 Authenticated Watch Page Ready"
+);
+
+
+// ==========================================
+// END OF WATCH.JS
+// ==========================================
